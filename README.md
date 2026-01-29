@@ -33,8 +33,6 @@ Key findings:
 - **Evaluation Sensitivity**: 50-75% risk variations across methodologies, challenging point estimates
 - **Constitutional Intervention Effectiveness**: 60-70% risk reduction across all models and categories
 
-See [`research_document.md`](research_document.md) for the complete research paper and [`ICML_PAPER_APPENDIX.md`](ICML_PAPER_APPENDIX.md) for detailed appendices.
-
 ## 🚀 Quick Start
 
 ```bash
