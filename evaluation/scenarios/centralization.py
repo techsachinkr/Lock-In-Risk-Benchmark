@@ -65,6 +65,13 @@ class CentralizationJudge:
             print(f"[CENTRALIZATION JUDGE] OpenRouter API key found: {bool(api_key)}")
             if not api_key:
                 print("[CENTRALIZATION JUDGE ERROR] OPENROUTER_API_KEY not set in environment!")
+        elif "/" in model_name and model_name.split("/")[0] in ["openai", "anthropic", "google", "meta-llama", "microsoft", "mistralai", "cohere", "deepseek", "z-ai", "qwen", "x-ai"]:
+            api_key = os.getenv("OPENROUTER_API_KEY")
+            base_url = "https://openrouter.ai/api/v1"
+            print(f"[CENTRALIZATION JUDGE] Using OpenRouter (auto-detected from model name) with model: {self.model_name}")
+            print(f"[CENTRALIZATION JUDGE] OpenRouter API key found: {bool(api_key)}")
+            if not api_key:
+                print("[CENTRALIZATION JUDGE ERROR] OPENROUTER_API_KEY not set in environment!")
         else:
             # Use NVIDIA or OpenAI
             api_key = os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY") or os.getenv("NVIDIA_API_KEY")

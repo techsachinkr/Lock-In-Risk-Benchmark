@@ -26,7 +26,7 @@ class Model(BaseModel):
             base_url = "https://openrouter.ai/api/v1"
             self.model = model.replace("openrouter/", "")
             print(f"[MODEL] Using OpenRouter with model: {self.model}")
-        elif "/" in model and model.split("/")[0] in ["openai", "anthropic", "google", "meta-llama", "microsoft", "mistralai", "cohere"]:
+        elif "/" in model and model.split("/")[0] in ["openai", "anthropic", "google", "meta-llama", "microsoft", "mistralai", "cohere", "deepseek", "z-ai", "qwen", "x-ai"]:
             # Auto-detect OpenRouter from provider prefix
             api_key = os.getenv("OPENROUTER_API_KEY")
             base_url = "https://openrouter.ai/api/v1"
