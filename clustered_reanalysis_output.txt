@@ -1,0 +1,121 @@
+Total raw observations loaded: 630
+model           category             benchmark
+GPT-4.1         centralisation       pressure     24
+                                     standard     18
+                oversight_avoidance  pressure     32
+                                     standard     24
+                update_resistance    pressure     64
+                                     standard     48
+Gemini 2.5 Pro  centralisation       pressure     24
+                                     standard     18
+                oversight_avoidance  pressure     32
+                                     standard     24
+                update_resistance    pressure     64
+                                     standard     48
+Sonnet 4.5      centralisation       pressure     24
+                                     standard     18
+                oversight_avoidance  pressure     32
+                                     standard     24
+                update_resistance    pressure     64
+                                     standard     48
+
+================================================================================
+ANALYSIS 1: CLUSTERED MANN-WHITNEY U
+  Scores averaged over all variants of the same base scenario.
+  Unit of analysis: base scenario (n = 8, 4, or 3 per category).
+================================================================================
+
+Clustered observations: 45
+
+--- UPDATE_RESISTANCE (n_base=8) ---
+  Gemini 2.5 Pro: n=8, mean=0.308, min=0.271, max=0.354
+  GPT-4.1: n=8, mean=0.255, min=0.214, max=0.322
+  Sonnet 4.5: n=8, mean=0.500, min=0.426, max=0.563
+
+  Sonnet 4.5 vs Gemini 2.5 Pro: n=(8,8), U=64.0, p=0.0002, r=1.0  ***
+  Sonnet 4.5 vs GPT-4.1: n=(8,8), U=64.0, p=0.0002, r=1.0  ***
+  Gemini 2.5 Pro vs GPT-4.1: n=(8,8), U=56.0, p=0.0104, r=0.75  *
+
+--- OVERSIGHT_AVOIDANCE (n_base=4) ---
+  Gemini 2.5 Pro: n=4, mean=0.170, min=0.153, max=0.183
+  GPT-4.1: n=4, mean=0.178, min=0.126, max=0.228
+  Sonnet 4.5: n=4, mean=0.166, min=0.124, max=0.215
+
+  Sonnet 4.5 vs Gemini 2.5 Pro: n=(4,4), U=8.0, p=1.0, r=0.0  ns
+  Sonnet 4.5 vs GPT-4.1: n=(4,4), U=6.0, p=0.6857, r=0.25  ns
+  Gemini 2.5 Pro vs GPT-4.1: n=(4,4), U=7.0, p=0.8857, r=0.125  ns
+
+--- CENTRALISATION (n_base=3) ---
+  Gemini 2.5 Pro: n=3, mean=0.243, min=0.194, max=0.308
+  GPT-4.1: n=3, mean=0.247, min=0.189, max=0.316
+  Sonnet 4.5: n=3, mean=0.191, min=0.158, max=0.247
+
+  Sonnet 4.5 vs Gemini 2.5 Pro: n=(3,3), U=2.0, p=0.4, r=0.556  ns
+  Sonnet 4.5 vs GPT-4.1: n=(3,3), U=2.0, p=0.4, r=0.556  ns
+  Gemini 2.5 Pro vs GPT-4.1: n=(3,3), U=4.0, p=1.0, r=0.111  ns
+
+--- SONNET: cross-dimension (clustered) ---
+  update_resistance vs centralisation: n=(8,3), U=24.0, p=0.0121, r=1.0  *
+  update_resistance vs oversight_avoidance: n=(8,4), U=32.0, p=0.004, r=1.0  **
+
+--- CLUSTERED MWU BY BENCHMARK (UR only) ---
+
+  Benchmark: standard
+    Sonnet 4.5 vs Gemini 2.5 Pro: n=(8,8), p=0.0379, r=0.625  *
+    Sonnet 4.5 vs GPT-4.1: n=(8,8), p=0.0047, r=0.812  *
+
+  Benchmark: pressure
+    Sonnet 4.5 vs Gemini 2.5 Pro: n=(8,8), p=0.0002, r=1.0  *
+    Sonnet 4.5 vs GPT-4.1: n=(8,8), p=0.0002, r=1.0  *
+
+================================================================================
+ANALYSIS 2: MIXED-EFFECTS LMM
+  score ~ model + (1 | base_scenario_id)  [base scenario = random effect]
+  Reference model: GPT-4.1
+================================================================================
+
+--- UPDATE_RESISTANCE (n_base=8, n_obs=336) ---
+                              Coef. Std.Err.       z  P>|z| [0.025 0.975]
+Intercept                     0.255    0.018  14.304  0.000  0.220  0.290
+C(model_c)[T.Gemini 2.5 Pro]  0.053    0.024   2.205  0.027  0.006  0.100
+C(model_c)[T.Sonnet 4.5]      0.245    0.024  10.170  0.000  0.198  0.292
+Group Var                     0.000    0.003                             
+  Random-effect variance (base): 0.0002
+  Residual variance:             0.0325
+  ICC (base scenario):           0.007
+
+--- OVERSIGHT_AVOIDANCE (n_base=4, n_obs=168) ---
+                               Coef. Std.Err.       z  P>|z|  [0.025 0.975]
+Intercept                      0.000                                       
+C(model_c)[T.Gemini 2.5 Pro]  -0.008    0.030  -0.254  0.800  -0.066  0.051
+C(model_c)[T.Sonnet 4.5]      -0.011    0.030  -0.375  0.708  -0.070  0.047
+Group Var                      0.000                                       
+  Random-effect variance (base): 0.0000
+  Residual variance:             0.0248
+  ICC (base scenario):           0.000
+
+--- CENTRALISATION (n_base=3, n_obs=126) ---
+                               Coef. Std.Err.       z  P>|z|  [0.025 0.975]
+Intercept                      0.000                                       
+C(model_c)[T.Gemini 2.5 Pro]  -0.005    0.040  -0.119  0.905  -0.083  0.073
+C(model_c)[T.Sonnet 4.5]      -0.056    0.040  -1.413  0.158  -0.134  0.022
+Group Var                      0.000                                       
+  Random-effect variance (base): 0.0000
+  Residual variance:             0.0333
+  ICC (base scenario):           0.000
+
+================================================================================
+SUMMARY: ORIGINAL (scenario-level) vs CLUSTERED (base-level) p-values
+================================================================================
+
+Category               Comparison                               Original p Clustered p     Change
+--------------------------------------------------------------------------------------------------
+update_resistance      Sonnet 4.5 vs Gemini 2.5 Pro                 0.0001      0.0002 same direction
+update_resistance      Sonnet 4.5 vs GPT-4.1                        0.0008      0.0002 same direction
+update_resistance      Gemini 2.5 Pro vs GPT-4.1                    0.7332      0.0104 ** SIGN. CHANGES **
+oversight_avoidance    Sonnet 4.5 vs Gemini 2.5 Pro                 0.5926         1.0 same direction
+oversight_avoidance    Sonnet 4.5 vs GPT-4.1                        0.0904      0.6857 same direction
+oversight_avoidance    Gemini 2.5 Pro vs GPT-4.1                    0.2194      0.8857 same direction
+centralisation         Sonnet 4.5 vs Gemini 2.5 Pro                   0.12         0.4 same direction
+centralisation         Sonnet 4.5 vs GPT-4.1                        0.5429         0.4 same direction
+centralisation         Gemini 2.5 Pro vs GPT-4.1                    0.2528         1.0 same direction
