@@ -8,11 +8,33 @@ a report matching the structure of variance_analysis_report.txt.
 Usage:
     python variance_analysis.py
     python variance_analysis.py --runs-dir compare_runs --output variance_analysis_report.txt
+    python variance_analysis.py --legacy-falsy-drop   # reproduce the published numbers
+
+SCORE-EXTRACTION BUG (fixed 2026-07)
+------------------------------------
+Scores were originally extracted as
+
+    agg.get("avg_risk_score") or agg.get("max_risk_score") or agg.get("final_risk_score")
+
+Python evaluates 0.0 as falsy, so any scenario scoring exactly 0.0 on both fields
+fell through every branch and was silently excluded. All 23 affected records
+scored exactly 0.0 - the exclusion removed precisely the fully compliant,
+zero-risk transcripts, making it behaviour-dependent rather than random, and
+biasing means upward most for the models that comply most.
+
+Corrected means (update resistance): Sonnet 0.431 (n=96), Gemini 0.228 (n=96),
+GPT-4.1 0.230 (n=80), versus published 0.435 (n=95) / 0.252 (n=87) / 0.274
+(n=67). The cross-model conclusion strengthens: Sonnet vs Gemini and Sonnet vs
+GPT-4.1 both move from p=0.0001 / 0.0008 to p=0.000003.
+
+Pass --legacy-falsy-drop to reproduce the published (biased) values for
+provenance. The default is the corrected extraction.
 """
 
 import json
 import math
 import argparse
+import sys
 from pathlib import Path
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
@@ -25,6 +47,9 @@ except ImportError:
     SCIPY = False
 
 BASE = Path(__file__).parent
+
+# See the module docstring. True reproduces the published numbers.
+RETAIN_LEGACY_FALSY_DROP = "--legacy-falsy-drop" in sys.argv
 
 
 # ─────────────────────────── data loading ────────────────────────────────────
@@ -77,9 +102,26 @@ def load_compare_runs(runs_dir: Path):
             continue
         for row in rows:
             agg = row.get("aggregate_scores", {})
-            score = (agg.get("avg_risk_score") or
-                     agg.get("max_risk_score") or
-                     agg.get("final_risk_score"))
+            # BUG FIX (2026-07): the original extraction was
+            #     agg.get("avg_risk_score") or agg.get("max_risk_score") or ...
+            # Python evaluates 0.0 as falsy, so a scenario scoring exactly 0.0 on
+            # both fields fell through every branch and was silently dropped.
+            # All 23 records this affected scored exactly 0.0, i.e. the exclusion
+            # removed precisely the fully compliant transcripts and biased means
+            # upward, most for the models that comply most.
+            #
+            # RETAIN_LEGACY_FALSY_DROP reproduces the published (biased) numbers
+            # for provenance; the default is the corrected extraction.
+            if RETAIN_LEGACY_FALSY_DROP:
+                score = (agg.get("avg_risk_score") or
+                         agg.get("max_risk_score") or
+                         agg.get("final_risk_score"))
+            else:
+                score = next(
+                    (agg[k] for k in ("avg_risk_score", "max_risk_score", "final_risk_score")
+                     if agg.get(k) is not None),
+                    None,
+                )
             if score is not None:
                 scenarios.append({
                     "run": run, "category": category, "model": model,
@@ -467,6 +509,10 @@ def build_report(summaries, scenarios, n_summary_files, runs_dir):
 def main():
     parser = argparse.ArgumentParser(description="Cross-run variance analysis for benchmark results")
     parser.add_argument("--runs-dir", default="compare_runs", help="Directory containing run subdirs")
+    parser.add_argument("--legacy-falsy-drop", action="store_true",
+                        help="Reproduce the published numbers by restoring the score-extraction "
+                             "bug that silently dropped scenarios scoring exactly 0.0 "
+                             "(see the module docstring). Default is the corrected extraction.")
     parser.add_argument("--output", "-o", default="variance_analysis_report.txt",
                         help="Output report file (default: variance_analysis_report.txt)")
     args = parser.parse_args()
