@@ -158,37 +158,64 @@ def main():
     print("\n" + "=" * 88)
     print("3. DIMENSION SEPARABILITY  (DYAi W1/Q1)")
     print("=" * 88)
-    print("  Spearman correlation between dimension scores at the model x seed level.")
-    print("  Low correlation = the dimensions measure distinct things.\n")
-    by_ms = defaultdict(list)
-    for r in rows:
-        by_ms[(r["model"], r["category"], r["seed"])].append(r["score"])
-    agg = {k: float(np.mean(v)) for k, v in by_ms.items()}
-    print(f"  {'dimension pair':50s} {'rho':>7s} {'p':>9s} {'n':>4s}")
+    print("  Scenario-level correlation between dimensions is IMPOSSIBLE by construction:")
+    print("  each scenario presents one dimension-specific decision and is scored against")
+    print("  that dimension's rubric only, so no scenario carries two dimension scores.")
+    print("  Correlating per-model means instead would be a 3-point correlation and is")
+    print("  not reported: with n=3 Spearman returns +/-1.0 by arithmetic.\n")
+    print("  The available empirical evidence is RANK REVERSAL across dimensions. If the")
+    print("  five dimensions measured one underlying trait, model ordering would be")
+    print("  stable across them.\n")
+
+    ranks = {}
+    print(f"  {'dimension':26s} " + " ".join(f"{LABEL[m][:13]:>15s}" for m in MODELS))
     print("  " + "-" * 74)
-    rhos = []
-    for c1, c2 in combinations(cats, 2):
-        xs, ys = [], []
-        # Seeds differ between dimensions, so pair on model and rank position
-        # within each model instead: compare per-model mean profiles.
+    for c in cats:
+        means = {m: (np.mean(cell[(m, c)]) if cell.get((m, c)) else float("nan"))
+                 for m in MODELS}
+        order = sorted([m for m in MODELS if np.isfinite(means[m])],
+                       key=lambda m: -means[m])
+        ranks[c] = {m: order.index(m) + 1 for m in order}
+        line = f"  {LABEL[c][:26]:26s} "
         for m in MODELS:
-            v1 = [v for (mm, cc, _s), v in agg.items() if mm == m and cc == c1]
-            v2 = [v for (mm, cc, _s), v in agg.items() if mm == m and cc == c2]
-            if v1 and v2:
-                xs.append(float(np.mean(v1)))
-                ys.append(float(np.mean(v2)))
-        if SCIPY and len(xs) >= 3:
-            rho, p = _stats.spearmanr(xs, ys)
-            if np.isfinite(rho):
-                rhos.append(abs(rho))
-                print(f"  {LABEL[c1][:23]:24s} vs {LABEL[c2][:23]:24s} "
-                      f"{rho:7.3f} {p:9.4f} {len(xs):4d}")
-    if rhos:
-        print(f"\n  mean |rho| across dimension pairs: {np.mean(rhos):.3f}")
-        print("  NOTE: n = 3 models per pair, so these are descriptive. The stronger")
-        print("  evidence for separability is the divergent per-model profile in table 1")
-        print("  and the fact that each scenario presents a single dimension-specific")
-        print("  decision, scored against that dimension's rubric only.")
+            r = ranks[c].get(m)
+            line += f"{means[m]:10.3f} (#{r})" if r else f"{'--':>15s}"
+        print(line)
+
+    print()
+    reversals = 0
+    pairs = 0
+    for c1, c2 in combinations([c for c in cats if ranks.get(c)], 2):
+        common = [m for m in MODELS if m in ranks[c1] and m in ranks[c2]]
+        for a, b in combinations(common, 2):
+            pairs += 1
+            if (ranks[c1][a] < ranks[c1][b]) != (ranks[c2][a] < ranks[c2][b]):
+                reversals += 1
+    print(f"  Model-pair orderings that REVERSE between two dimensions: "
+          f"{reversals}/{pairs} ({100*reversals/pairs:.0f}%)")
+    top = {c: min(ranks[c], key=ranks[c].get) for c in cats if ranks.get(c)}
+    distinct = len(set(top.values()))
+    print(f"  Distinct models holding the top rank across the {len(top)} dimensions: {distinct}")
+    for c in cats:
+        if c in top:
+            print(f"    {LABEL[c][:26]:28s} highest = {LABEL[top[c]]}")
+    if distinct > 1:
+        print("\n  No single model is highest on every dimension, and model orderings")
+        print("  reverse between dimensions, so the dimensions are not collapsing onto one")
+        print("  latent trait. This is the claim the data supports; it does not establish")
+        print("  that the dimensions are mutually exclusive at the BEHAVIOUR level, which")
+        print("  is a design question we answer by scenario construction rather than")
+        print("  statistically.")
+
+    # Within-model spread: is any model's profile flat?
+    if SCIPY:
+        print("\n  Within-model variation across dimensions (Kruskal-Wallis):")
+        for m in MODELS:
+            groups = [cell[(m, c)] for c in cats if len(cell.get((m, c), [])) >= 3]
+            if len(groups) >= 3:
+                h, p = _stats.kruskal(*groups)
+                print(f"    {LABEL[m]:20s} H={h:7.3f}  p={p:.4f}  "
+                      f"{'profile is NOT flat' if p < 0.05 else 'profile is flat (ns)'}")
 
     # ---- what the new dimensions add ------------------------------------
     print("\n" + "=" * 88)
