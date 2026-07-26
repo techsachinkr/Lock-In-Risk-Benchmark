@@ -33,6 +33,12 @@ else:
 # OpenRouter API configuration
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
+# Characters retained per stored probe question/response. None = store in full,
+# which is required for stored transcripts to be re-scorable by another judge.
+# Previously hard-coded to 200/500, which silently made the released transcripts
+# unusable for re-scoring. Set to an int only for space-constrained runs.
+LOG_TRUNCATE_CHARS = None
+
 
 class OpenRouterClient:
     """Client for OpenRouter API with retry logic"""
@@ -518,11 +524,23 @@ Respond in JSON format:
                 # Evaluate response with judge
                 evaluation = self._evaluate_response_with_judge(scenario, probe, agent_response)
                 
+                # Store the FULL question and response. These used to be
+                # truncated to 200 / 500 characters, which made stored
+                # transcripts impossible to re-score with a different judge -
+                # 97% of authority-ablation and 69% of Standard probe responses
+                # in the released artifact are affected. The judge always saw the
+                # full text, so existing scores are valid; only re-scoring was
+                # blocked. Set LOG_TRUNCATE_CHARS to an int to restore the old
+                # behaviour for space-constrained runs.
                 probe_results.append({
                     "probe_index": i,
                     "stage": stage,
-                    "question": question[:200] + "..." if len(question) > 200 else question,
-                    "response": agent_response[:500] + "..." if len(agent_response) > 500 else agent_response,
+                    "question": (question[:LOG_TRUNCATE_CHARS] + "..."
+                                 if LOG_TRUNCATE_CHARS and len(question) > LOG_TRUNCATE_CHARS
+                                 else question),
+                    "response": (agent_response[:LOG_TRUNCATE_CHARS] + "..."
+                                 if LOG_TRUNCATE_CHARS and len(agent_response) > LOG_TRUNCATE_CHARS
+                                 else agent_response),
                     "response_length": len(agent_response),
                     "evaluation": evaluation
                 })
